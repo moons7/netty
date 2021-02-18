@@ -15,15 +15,7 @@
  */
 package io.netty.handler.codec.http.websocketx;
 
-import io.netty.handler.codec.http.DefaultFullHttpRequest;
-import io.netty.handler.codec.http.DefaultHttpHeaders;
-import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.HttpHeaderNames;
-import io.netty.handler.codec.http.HttpHeaderValues;
-import io.netty.handler.codec.http.HttpHeaders;
-import io.netty.handler.codec.http.HttpMethod;
-import io.netty.handler.codec.http.HttpVersion;
+import io.netty.handler.codec.http.*;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -31,25 +23,25 @@ import static org.junit.Assert.*;
 public abstract class WebSocketServerHandshakerTest {
 
     protected abstract WebSocketServerHandshaker newHandshaker(String webSocketURL, String subprotocols,
-            WebSocketDecoderConfig decoderConfig);
+                                                               WebSocketDecoderConfig decoderConfig);
 
     protected abstract WebSocketVersion webSocketVersion();
 
     @Test
     public void testDuplicateHandshakeResponseHeaders() {
         WebSocketServerHandshaker serverHandshaker = newHandshaker("ws://example.com/chat",
-                                                                   "chat", WebSocketDecoderConfig.DEFAULT);
+                "chat", WebSocketDecoderConfig.DEFAULT);
         FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/chat");
         request.headers()
-               .set(HttpHeaderNames.HOST, "example.com")
-               .set(HttpHeaderNames.ORIGIN, "example.com")
-               .set(HttpHeaderNames.UPGRADE, HttpHeaderValues.WEBSOCKET)
-               .set(HttpHeaderNames.CONNECTION, HttpHeaderValues.UPGRADE)
-               .set(HttpHeaderNames.SEC_WEBSOCKET_KEY, "dGhlIHNhbXBsZSBub25jZQ==")
-               .set(HttpHeaderNames.SEC_WEBSOCKET_ORIGIN, "http://example.com")
-               .set(HttpHeaderNames.SEC_WEBSOCKET_PROTOCOL, "chat, superchat")
-               .set(HttpHeaderNames.WEBSOCKET_PROTOCOL, "chat, superchat")
-               .set(HttpHeaderNames.SEC_WEBSOCKET_VERSION, webSocketVersion().toAsciiString());
+                .set(HttpHeaderNames.HOST, "example.com")
+                .set(HttpHeaderNames.ORIGIN, "example.com")
+                .set(HttpHeaderNames.UPGRADE, HttpHeaderValues.WEBSOCKET)
+                .set(HttpHeaderNames.CONNECTION, HttpHeaderValues.UPGRADE)
+                .set(HttpHeaderNames.SEC_WEBSOCKET_KEY, "dGhlIHNhbXBsZSBub25jZQ==")
+                .set(HttpHeaderNames.SEC_WEBSOCKET_ORIGIN, "http://example.com")
+                .set(HttpHeaderNames.SEC_WEBSOCKET_PROTOCOL, "chat, superchat")
+                .set(HttpHeaderNames.WEBSOCKET_PROTOCOL, "chat, superchat")
+                .set(HttpHeaderNames.SEC_WEBSOCKET_VERSION, webSocketVersion().toAsciiString());
         HttpHeaders customResponseHeaders = new DefaultHttpHeaders();
         // set duplicate required headers and one custom
         customResponseHeaders
@@ -57,11 +49,8 @@ public abstract class WebSocketServerHandshakerTest {
                 .set(HttpHeaderNames.UPGRADE, HttpHeaderValues.WEBSOCKET)
                 .set(HttpHeaderNames.SEC_WEBSOCKET_PROTOCOL, "superchat")
                 .set(HttpHeaderNames.WEBSOCKET_PROTOCOL, "superchat")
-                .set("custom", "header");
-
-        if (webSocketVersion() != WebSocketVersion.V00) {
-            customResponseHeaders.set(HttpHeaderNames.SEC_WEBSOCKET_ACCEPT, "12345");
-        }
+                .set("custom", "header")
+                .set(HttpHeaderNames.SEC_WEBSOCKET_ACCEPT, "12345");
 
         FullHttpResponse response = null;
         try {
@@ -71,15 +60,10 @@ public abstract class WebSocketServerHandshakerTest {
             assertEquals(1, responseHeaders.getAll(HttpHeaderNames.CONNECTION).size());
             assertEquals(1, responseHeaders.getAll(HttpHeaderNames.UPGRADE).size());
             assertTrue(responseHeaders.containsValue("custom", "header", true));
+            assertFalse(responseHeaders.containsValue(HttpHeaderNames.SEC_WEBSOCKET_ACCEPT, "12345", false));
+            assertEquals(1, responseHeaders.getAll(HttpHeaderNames.SEC_WEBSOCKET_PROTOCOL).size());
+            assertEquals("chat", responseHeaders.get(HttpHeaderNames.SEC_WEBSOCKET_PROTOCOL));
 
-            if (webSocketVersion() != WebSocketVersion.V00) {
-                assertFalse(responseHeaders.containsValue(HttpHeaderNames.SEC_WEBSOCKET_ACCEPT, "12345", false));
-                assertEquals(1, responseHeaders.getAll(HttpHeaderNames.SEC_WEBSOCKET_PROTOCOL).size());
-                assertEquals("chat", responseHeaders.get(HttpHeaderNames.SEC_WEBSOCKET_PROTOCOL));
-            } else {
-                assertEquals(1, responseHeaders.getAll(HttpHeaderNames.WEBSOCKET_PROTOCOL).size());
-                assertEquals("chat", responseHeaders.get(HttpHeaderNames.WEBSOCKET_PROTOCOL));
-            }
         } finally {
             request.release();
             if (response != null) {
@@ -91,10 +75,10 @@ public abstract class WebSocketServerHandshakerTest {
     @Test
     public void testWebSocketServerHandshakeException() {
         WebSocketServerHandshaker serverHandshaker = newHandshaker("ws://example.com/chat",
-                                                                   "chat", WebSocketDecoderConfig.DEFAULT);
+                "chat", WebSocketDecoderConfig.DEFAULT);
 
         FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET,
-                                                             "ws://example.com/chat");
+                "ws://example.com/chat");
         request.headers().set("x-client-header", "value");
         try {
             serverHandshaker.handshake(null, request, null, null);

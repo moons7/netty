@@ -95,7 +95,7 @@ public class WebSocketServerProtocolHandlerTest {
                 .method(HttpMethod.GET)
                 .uri("/test")
                 .connection("Upgrade")
-                .version00()
+                .version13()
                 .upgrade("BogusSocket")
                 .build();
 
